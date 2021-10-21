@@ -1,8 +1,11 @@
 <template>
   <div id="app">
+    <h1>{{ stage }}</h1>
     <template v-if="loading">
       <h1
-        class="animate__animated animate__bounce animate__repeat-3 animate__slow"
+        class="
+          animate__animated animate__bounce animate__repeat-3 animate__slow
+        "
       >
         <font color="gray">processing...</font>
       </h1>
@@ -10,6 +13,7 @@
     <template v-else>
       <template v-if="signedIn">
         <h1>Logged in</h1>
+        <h2>{{ sns }}</h2>
         <a href="#" @click="signOut"><font color="gray">Sign Out</font></a>
       </template>
       <template v-else>
@@ -31,7 +35,10 @@ import { Auth, Hub } from "aws-amplify";
 export default {
   name: "App",
   computed: {
-    ...mapGetters(["loading", "signedIn"]),
+    ...mapGetters(["loading", "signedIn", "sns"]),
+    stage() {
+      return process.env.VUE_APP_STAGE;
+    },
   },
   data() {
     return {
@@ -46,10 +53,13 @@ export default {
     Hub.listen("auth", async (data) => {
       switch (data.payload.event) {
         case "signIn": {
+          console.log(data);
           const cognitoUser = await Auth.currentAuthenticatedUser();
           console.log(`signed in ... ${cognitoUser.username}`);
+          console.log(cognitoUser);
           this.$store.dispatch("signedIn", true);
           this.$store.dispatch("loading", false);
+          this.$store.dispatch("user", cognitoUser);
           Swal.fire({
             position: "top-end",
             icon: "success",
@@ -66,8 +76,9 @@ export default {
   },
   methods: {
     async signIn(provider) {
+      this.$store.dispatch("setSns", provider);
       this.$store.dispatch("loading", true);
-      console.log("signIn",provider)
+      console.log("signIn", provider);
       const res = await Auth.federatedSignIn({ provider });
       console.log(res);
     },
